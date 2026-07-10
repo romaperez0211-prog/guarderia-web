@@ -180,8 +180,9 @@ def procesar():
         return "<h1>¡Registro completado con éxito! Los datos y el archivo se han guardado de manera segura.</h1><p><a href='/'>Volver al formulario</a></p>"
 
 # Ruta exclusiva del dueño: Ver la tabla de registros administradores
+@app.route('/admin/')
 @app.route('/admin')
-def admin():
+def admin_panel():  # Le cambié el nombre a la función para que no choque con nada
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM registros')
@@ -199,7 +200,7 @@ if __name__ == '__main__':
 
 
 
-    
+
     
 
 
