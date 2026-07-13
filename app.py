@@ -63,6 +63,7 @@ def registro():
     return render_template('registro.html')
 
 # Ruta para procesar los datos enviados por el formulario
+@app.route('/enviar', methods=['POST'])).
 # 1. Recibir los datos del formulario (esto se queda igual que como lo tenías)
 nombre_tutor = request.form.get('nombre_tutor')
 apellido_tutor = request.form.get('apellido_tutor')
