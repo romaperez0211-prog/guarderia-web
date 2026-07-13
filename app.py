@@ -190,19 +190,27 @@ def admin_panel():  # Le cambié el nombre a la función para que no choque con 
     conn.close()
     return render_template('admin.html', registros=datos)
 
-# Ruta para permitir al dueño ver/descargar los archivos guardados
-@app.route('/uploads/<filename>')
-def ver_archivo(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
-
-
+# Ruta exclusiva del dueño: Ver la tabla de registros administradores
+@app.route('/admin/')
+@app.route('/admin')
+def admin_panel():
+    conn = sqlite3.connect('database.db')
+    
+    # TRUCO: Esto hace que SQLite devuelva los datos como un diccionario con nombres en vez de números
+    conn.row_factory = sqlite3.Row 
+    
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM registros')
+    datos = cursor.fetchall()
+    conn.close()
+    
+    # Le pasamos los datos llamándolos 'ninos' para que coincida con tu HTML
+    return render_template('admin.html', ninos=datos)
 
     
 
 
+
+    
 
     
