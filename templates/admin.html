@@ -84,7 +84,8 @@
                     <th>Año Nac.</th>
                     <th>Tutor</th>
                     <th>Teléfono</th>
-                    <th>¿Alergias?</th>
+                    <th>¿Enfermedades?</th>
+                    <th>¿Alergias?</th>sssss
                     <th>Acta de Nacimiento</th>
                 </tr>
             </thead>
@@ -97,19 +98,29 @@
                     <td>{{ nino['ano_nacimiento'] }}</td>
                     <td>{{ nino['nombre_tutor'] }} {{ nino['apellido_tutor'] }}</td>
                     <td>{{ nino['telefono'] }}</td>
+                    <!-- Primero: Enfermedades (Línea 101 en adelante) -->
                     <td>
-                        {% if nino['es_alergico'] == 'si' or nino['es_alergico'] == 'Sí' %}
-                            ⚠️ {{ nino['detalles_alergia'] }}
+                         {% if nino['tiene_enfermedad'] == 'si' or nino['tiene_enfermedad'] == 'Si' %}
+                            {{ nino['detalles_enfermedad'] }}
+                         {% else %}
+                              Ninguna
+                         {% endif %}
+                    </td>
+
+                    <!-- Segundo: Alergias -->
+                    <td>
+                        {% if nino['es_alergico'] == 'si' or nino['es_alergico'] == 'Si' %}
+                            {{ nino['detalles_alergia'] }}
                         {% else %}
-                            Ninguna
+                             Ninguna
                         {% endif %}
                     </td>
                     <td>
-                        {% if nino['acta_nacimiento'] %}
-                            <a href="/ver-acta/{{ nino['acta_nacimiento'] }}" target="_blank" class="btn-ver">📄 Ver PDF / Imagen</a>
-                        {% else %}
-                            <span class="no-file">No entregado</span>
-                        {% endif %}
+                         {% if nino['acta_nacimiento'] != 'no_file.png' %}
+                            <a href="/uploads/{{ nino['acta_nacimiento'] }}" target="_blank" class="btn-ver">Ver PDF / Imagen</a>
+                         {% else %}
+                              No adjunto
+                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -123,3 +134,4 @@
 
 
 
+s
