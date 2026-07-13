@@ -195,21 +195,20 @@ def admin_panel():  # Le cambié el nombre a la función para que no choque con 
 @app.route('/admin')
 def admin_panel():
     conn = sqlite3.connect('database.db')
-    
-    # TRUCO: Esto hace que SQLite devuelva los datos como un diccionario con nombres en vez de números
     conn.row_factory = sqlite3.Row 
-    
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM registros')
     datos = cursor.fetchall()
     conn.close()
     
-    # Le pasamos los datos llamándolos 'ninos' para que coincida con tu HTML
-    return render_template('admin.html', ninos=datos)
-
+    # ESTO ES PARA DIAGNÓSTICO: Nos dirá en los Logs si hay datos o no
+    print("--- DIAGNÓSTICO DE BASE DE DATOS ---")
+    print(f"Cantidad de registros encontrados: {len(datos)}")
+    for fila in datos:
+        print(dict(fila)) # Imprime el diccionario exacto para ver los nombres de las columnas
+    print("------------------------------------")
     
-
-
+    return render_template('admin.html', ninos=datos)
 
     
 
