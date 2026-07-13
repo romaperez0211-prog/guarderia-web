@@ -1,9 +1,11 @@
 import os
 import sqlite3
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
+app.secret_key = 'llave_secreta_super_segura_para_la_guarderia'
 
 # Configuración de la carpeta para guardar las actas de nacimiento
 UPLOAD_FOLDER = 'uploads'
@@ -100,17 +102,30 @@ def procesar():
         
         return "<h1>¡Registro completado con éxito! Los datos y el archivo se han guardado de manera segura.</h1><p><a href='/'>Volver al formulario</a></p>"
 
-# Ruta para que el navegador pueda abrir los archivos guardados en uploads
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+# NUEVA RUTA: Muestra el formulario de login (Método GET) o procesa las credenciales (Método POST)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        # Definimos el usuario y contraseña del dueño aquí (Puedes cambiarlos por los que prefieras)
+        if request.form['username'] == 'admin' and request.form['password'] == 'BlancaNieves2026':
+            session['logueado'] = True  # Creamos el pase de entrada seguro
+            return redirect(url_for('admin_panel'))
+        else:
+            error = 'Usuario o contraseña incorrectos. Intenta de nuevo.'
+            
+    return render_template('login.html', error=error)
 
-# Ruta exclusiva del dueño: Ver la tabla de registros administradores
+# RUTA ACTUALIZADA: Ahora verifica si el pase existe antes de mostrar los niños
 @app.route('/admin/')
 @app.route('/admin')
 def admin_panel():
+    # SI NO ESTÁ LOGUEADO: Lo rebota inmediatamente a la pantalla de login por seguridad
+    if not session.get('logueado'):
+        return redirect(url_for('login'))
+        
     conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row  # Envía los datos con nombres para que tu HTML los entienda
+    conn.row_factory = sqlite3.Row  
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM registros')
     datos = cursor.fetchall()
@@ -118,5 +133,12 @@ def admin_panel():
     
     return render_template('admin.html', ninos=datos)
 
+# NUEVA RUTA: Permite al dueño cerrar su sesión de forma segura
+@app.route('/logout')
+def logout():
+    session.pop('logueado', None)  # Destruye el pase de entrada
+    return redirect(url_for('login'))
+
+    
 
     
