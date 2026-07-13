@@ -3,6 +3,14 @@ import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, session
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
+from supabase import create_client, Client
+
+# Credenciales de tu proyecto en Supabase
+SUPABASE_URL = "https://rwnlofwkexxflmwxddpl.supabase.co"
+SUPABASE_KEY = "sb_publishable_knGfUYRT8CLdh6XreRXiSQ_7tE7m-NS"
+
+# Inicializamos el cliente oficial
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 app.secret_key = 'llave_secreta_super_segura_para_la_guarderia'
@@ -55,55 +63,70 @@ def registro():
     return render_template('registro.html')
 
 # Ruta para procesar los datos enviados por el formulario
-@app.route('/procesar', methods=['POST'])
-def procesar():
-    if request.method == 'POST':
-        nombre_tutor = request.form['nombre_tutor']
-        apellido_tutor = request.form['apellido_tutor']
-        identificacion = request.form['identificacion']
-        telefono = request.form['telefono']
-        correo = request.form['correo']
-        nombre_nino = request.form['nombre_nino']
-        ano_nacimiento = int(request.form['ano_nacimiento'])
-        edad_nino = int(request.form['edad_nino'])
-        tiene_enfermedad = request.form['tiene_enfermedad']
-        detalles_enfermedad = request.form.get('detalles_enfermedad', '')
-        es_alergico = request.form['es_alergico']
-        detalles_alergia = request.form.get('detalles_alergia', '')
-        informacion_adicional = request.form.get('informacion_adicional', '')
-        
-        # Procesamiento y guardado del archivo adjunto (Acta de nacimiento)
-        file = request.files.get('acta_nacimiento')
-        nombre_archivo_final = "no_file.png"
-        
-        # Primero verificamos que el archivo exista y tenga un nombre real
-        if file and file.filename != '':
-            if allowed_file(file.filename) and '.' in file.filename:
-                filename = secure_filename(file.filename)
-                # Extraemos la extensión de forma segura
-                extension = filename.rsplit('.', 1)[1].lower()
-                nuevo_nombre = f"acta_{secure_filename(nombre_nino)}.{extension}"
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], nuevo_nombre))
-                nombre_archivo_final = nuevo_nombre
+# 1. Recibir los datos del formulario (esto se queda igual que como lo tenías)
+nombre_tutor = request.form.get('nombre_tutor')
+apellido_tutor = request.form.get('apellido_tutor')
+identificacion = request.form.get('identificacion')
+telefono = request.form.get('telefono')
+correo = request.form.get('correo')
+nombre_nino = request.form.get('nombre_nino')
+ano_nacimiento = int(request.form.get('ano_nacimiento', 0))
+edad_nino = int(request.form.get('edad_nino', 0))
+tiene_enfermedad = request.form.get('tiene_enfermedad')
+detalles_enfermedad = request.form.get('detalles_enfermedad', '')
+es_alergico = request.form.get('es_alergico')
+detalles_alergia = request.form.get('detalles_alergia', '')
+informacion_adicional = request.form.get('informacion_adicional', '')
 
-        # Guardar la información en la base de datos
-        conn = sqlite3.connect('database.db')
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO registros (
-                nombre_tutor, apellido_tutor, identificacion, telefono, correo,
-                nombre_nino, ano_nacimiento, edad_nino, tiene_enfermedad, detalles_enfermedad,
-                es_alergico, detalles_alergia, informacion_adicional, acta_nacimiento
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            nombre_tutor, apellido_tutor, identificacion, telefono, correo,
-            nombre_nino, ano_nacimiento, edad_nino, tiene_enfermedad, detalles_enfermedad,
-            es_alergico, detalles_alergia, informacion_adicional, nombre_archivo_final
-        ))
-        conn.commit()
-        conn.close()
-        
-        return "<h1>¡Registro completado con éxito! Los datos y el archivo se han guardado de manera segura.</h1><p><a href='/'>Volver al formulario</a></p>"
+# Manejo del archivo (acta de nacimiento)
+file = request.files.get('acta_nacimiento')
+nombre_archivo_final = ""
+
+if file and file.filename != '':
+    # Creamos un nombre único para el archivo usando la identificación del tutor
+    extension = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+    nombre_archivo_final = f"acta_{identificacion}.{extension}"
+    
+    # Leemos los bytes del archivo cargado
+    file_bytes = file.read()
+    
+    try:
+        # SUBIR EL ARCHIVO AL STORAGE DE SUPABASE
+        # Lo subimos al bucket 'actas' que creaste
+        supabase.storage.from_('actas').upload(
+            path=nombre_archivo_final,
+            file=file_bytes,
+            file_options={"content-type": file.content_type}
+        )
+    except Exception as e:
+        print(f"Error al subir archivo: {e}")
+
+try:
+    # 2. GUARDAR LOS DATOS EN LA TABLA DE SUPABASE
+    datos_registro = {
+        "nombre_tutor": nombre_tutor,
+        "apellido_tutor": apellido_tutor,
+        "identificacion": identificacion,
+        "telefono": telefono,
+        "correo": correo,
+        "nombre_nino": nombre_nino,
+        "ano_nacimiento": ano_nacimiento,
+        "edad_nino": edad_nino,
+        "tiene_enfermedad": tiene_enfermedad,
+        "detalles_enfermedad": detalles_enfermedad,
+        "es_alergico": es_alergico,
+        "detalles_alergia": detalles_alergia,
+        "informacion_adicional": informacion_adicional,
+        "nombre_archivo_final": nombre_archivo_final # Guardamos el nombre para saber cuál acta le pertenece
+    }
+    
+    # Hacemos la inserción oficial en la nube
+    supabase.table('registros').insert(datos_registro).execute()
+    
+    return "¡Registro guardado con éxito en Supabase!"
+
+except Exception as e:
+    return f"Hubo un error al guardar los datos: {e}"
 
 # NUEVA RUTA: Muestra el formulario de login (Método GET) o procesa las credenciales (Método POST)
 @app.route('/login', methods=['GET', 'POST'])
@@ -167,7 +190,7 @@ def devuelve_archivo(filename):
     # Esto busca el archivo en la carpeta 'uploads' y lo manda al navegador de forma segura
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-    s
+    
     
 
     
