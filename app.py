@@ -76,12 +76,15 @@ def procesar():
         file = request.files.get('acta_nacimiento')
         nombre_archivo_final = "no_file.png"
         
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            extension = filename.rsplit('.', 1)[1].lower()
-            nuevo_nombre = f"acta_{secure_filename(nombre_nino)}.{extension}"
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], nuevo_nombre))
-            nombre_archivo_final = nuevo_nombre
+        # Primero verificamos que el archivo exista y tenga un nombre real
+        if file and file.filename != '':
+            if allowed_file(file.filename) and '.' in file.filename:
+                filename = secure_filename(file.filename)
+                # Extraemos la extensión de forma segura
+                extension = filename.rsplit('.', 1)[1].lower()
+                nuevo_nombre = f"acta_{secure_filename(nombre_nino)}.{extension}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], nuevo_nombre))
+                nombre_archivo_final = nuevo_nombre
 
         # Guardar la información en la base de datos
         conn = sqlite3.connect('database.db')
