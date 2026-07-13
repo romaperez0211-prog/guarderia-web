@@ -1,78 +1,3 @@
-from flask import Flask, render_template, request, redirect, send_from_directory
-import sqlite3
-import os
-
-app = Flask(__name__)
-
-# Configuramos la carpeta donde se van a guardar las actas de nacimiento (PDF o imágenes)
-CARPETA_UPLOADS = 'uploads'
-app.config['UPLOAD_FOLDER'] = CARPETA_UPLOADS
-
-# Si la carpeta 'uploads' no existe en la computadora o en Render, se crea sola
-if not os.path.exists(CARPETA_UPLOADS):
-    os.makedirs(CARPETA_UPLOADS)
-
-# FUNCIÓN PARA CREAR LA BASE DE DATOS (El archivador digital)
-def inicializar_base_datos():
-    conexion = sqlite3.connect('guarderia.db')
-    cursor = conexion.cursor()
-    
-    # Agregamos el campo 'acta_nacimiento' al final de la tabla
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS registros (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre_tutor TEXT,
-            apellido_tutor TEXT,
-            identificacion TEXT,
-            telefono TEXT,
-            correo TEXT,
-            nombre_nino TEXT,
-            ano_nacimiento TEXT,
-            edad_nino TEXT,
-            tiene_enfermedad TEXT,
-            detalles_enfermedad TEXT,
-            es_alergico TEXT,
-            detalles_alergia TEXT,
-            informacion_adicional TEXT,
-            acta_nacimiento TEXT
-        )
-    ''')
-    conexion.commit()
-    conexion.close()
-
-# Inicializamos la base de datos al arrancar el programa
-inicializar_base_datos()
-
-@app.route('/')
-def mostrar_registro():
-    return render_template('registro.html')
-
-@app.route('/procesar', methods=['POST'])
-def procesar_formulario():
-    # 1. Atrapamos los datos de texto del formulario
-    nombre_padre = request.form.get('nombre_tutor')
-    apellido_padre = request.form.get('apellido_tutor')
-    identificacion = request.form.get('identificacion')
-    telefono = request.form.get('telefono')
-    correo = request.form.get('correo')
-    nombre_infante = request.form.get('nombre_nino')
-    ano_nacimiento = request.form.get('ano_nacimiento')
-    edad_infante = request.form.get('edad_nino')
-    tiene_enfermedad = request.form.get('tiene_enfermedad')
-    detalles_enfermedad = request.form.get('detalles_enfermedad')
-    es_alergico = request.form.get('es_alergico')
-    detalles_alergia = request.form.get('detalles_alergia')
-    informacion_adicional = request.form.get('informacion_adicional')
-
-    # 2. PROCESAMOS EL ARCHIVO DEL ACTA DE NACIMIENTO
-    archivo_acta = request.files.get('acta_nacimiento')
-    nombre_archivo_final = ""
-
-    if archivo_acta and archivo_acta.filename != '':
-        # Para que no se dupliquen nombres de archivos, le pegamos el nombre del niño al inicio
-        nombre_archivo_final = f"{nombre_infante}_{archivo_acta.filename}"
-        # Guardamos el archivo físico en la carpeta uploads
-        archivo_acta.save(os.path.join(app.config['UPLOAD_FOLDER'], nombre_archivo_final))
 import os
 import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory
@@ -95,9 +20,6 @@ def allowed_file(filename):
 def init_db():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
-    
-    # TRUCO DE REINICIO: Borra la tabla vieja sin la columna para solucionar el error 500
-    cursor.execute("DROP TABLE IF EXISTS registros")
     
     # Crea la tabla limpia y corregida con la columna 'acta_nacimiento'
     cursor.execute('''
@@ -154,13 +76,12 @@ def procesar():
         
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            # Renombrar el archivo usando el nombre del niño para evitar duplicados
             extension = filename.rsplit('.', 1)[1].lower()
             nuevo_nombre = f"acta_{secure_filename(nombre_nino)}.{extension}"
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], nuevo_nombre))
             nombre_archivo_final = nuevo_nombre
 
-        # Guardar la información en la base de datos corregida
+        # Guardar la información en la base de datos
         conn = sqlite3.connect('database.db')
         cursor = conn.cursor()
         cursor.execute('''
@@ -179,37 +100,23 @@ def procesar():
         
         return "<h1>¡Registro completado con éxito! Los datos y el archivo se han guardado de manera segura.</h1><p><a href='/'>Volver al formulario</a></p>"
 
-# Ruta exclusiva del dueño: Ver la tabla de registros administradores
-@app.route('/admin/')
-@app.route('/admin')
-def admin_panel():  # Le cambié el nombre a la función para que no choque con nada
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM registros')
-    datos = cursor.fetchall()
-    conn.close()
-    return render_template('admin.html', registros=datos)
+# Ruta para que el navegador pueda abrir los archivos guardados en uploads
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 # Ruta exclusiva del dueño: Ver la tabla de registros administradores
 @app.route('/admin/')
 @app.route('/admin')
 def admin_panel():
     conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row 
+    conn.row_factory = sqlite3.Row  # Envía los datos con nombres para que tu HTML los entienda
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM registros')
     datos = cursor.fetchall()
     conn.close()
     
-    # ESTO ES PARA DIAGNÓSTICO: Nos dirá en los Logs si hay datos o no
-    print("--- DIAGNÓSTICO DE BASE DE DATOS ---")
-    print(f"Cantidad de registros encontrados: {len(datos)}")
-    for fila in datos:
-        print(dict(fila)) # Imprime el diccionario exacto para ver los nombres de las columnas
-    print("------------------------------------")
-    
     return render_template('admin.html', ninos=datos)
 
-    
 
     
