@@ -139,6 +139,24 @@ def logout():
     session.pop('logueado', None)  # Destruye el pase de entrada
     return redirect(url_for('login'))
 
+    # NUEVA RUTA: Eliminar un registro específico por su ID
+@app.route('/admin/eliminar/<int:id>')
+def eliminar_registro(id):
+    # SEGURIDAD: Si alguien intenta meterse a esta ruta sin loguearse, lo rebota
+    if not session.get('logueado'):
+        return redirect(url_for('login'))
+        
+    conn = sqlite3.connect('database.db')
+    cursor = conn.cursor()
+    
+    # Ejecutamos la orden de eliminación usando el ID único del niño
+    cursor.execute('DELETE FROM registros WHERE id = ?', (id,))
+    
+    conn.commit()
+    conn.close()
+    
+    # Una vez borrado, lo redirigimos de nuevo al panel para que vea la tabla actualizada
+    return redirect(url_for('admin_panel'))
     
 
     
