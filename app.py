@@ -160,6 +160,14 @@ def eliminar_registro(id):
     
     # Una vez borrado, lo redirigimos de nuevo al panel para que vea la tabla actualizada
     return redirect(url_for('admin_panel'))
+
+    # RUTA PARA SERVIR LOS ARCHIVOS DE LA CARPETA UPLOADS
+@app.route('/uploads/<filename>')
+def devuelve_archivo(filename):
+    # Esto busca el archivo en la carpeta 'uploads' y lo manda al navegador de forma segura
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+    s
     
 
     
