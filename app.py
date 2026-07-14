@@ -63,24 +63,26 @@ def registro():
     return render_template('registro.html')
 
 # Ruta para procesar los datos enviados por el formulario
-@app.route('/enviar', methods=['POST'])# 1. Recibir los datos del formulario (esto se queda igual que como lo tenías)
-nombre_tutor = request.form.get('nombre_tutor')
-apellido_tutor = request.form.get('apellido_tutor')
-identificacion = request.form.get('identificacion')
-telefono = request.form.get('telefono')
-correo = request.form.get('correo')
-nombre_nino = request.form.get('nombre_nino')
-ano_nacimiento = int(request.form.get('ano_nacimiento', 0))
-edad_nino = int(request.form.get('edad_nino', 0))
-tiene_enfermedad = request.form.get('tiene_enfermedad')
-detalles_enfermedad = request.form.get('detalles_enfermedad', '')
-es_alergico = request.form.get('es_alergico')
-detalles_alergia = request.form.get('detalles_alergia', '')
-informacion_adicional = request.form.get('informacion_adicional', '')
+@app.route('/enviar', methods=['POST'])
+def procesar():
+    # 1. Recibir los datos del formulario (mira los 4 espacios de sangría al inicio)
+    nombre_tutor = request.form.get('nombre_tutor')
+    apellido_tutor = request.form.get('apellido_tutor')
+    identificacion = request.form.get('identificacion')
+    telefono = request.form.get('telefono')
+    correo = request.form.get('correo')
+    nombre_nino = request.form.get('nombre_nino')
+    ano_nacimiento = int(request.form.get('ano_nacimiento', 0))
+    edad_nino = int(request.form.get('edad_nino', 0))
+    tiene_enfermedad = request.form.get('tiene_enfermedad')
+    detalles_enfermedad = request.form.get('detalles_enfermedad', '')
+    es_alergico = request.form.get('es_alergico')
+    detalles_alergia = request.form.get('detalles_alergia', '')
+    informacion_adicional = request.form.get('informacion_adicional', '')
 
-# Manejo del archivo (acta de nacimiento)
-file = request.files.get('acta_nacimiento')
-nombre_archivo_final = ""
+    # Manejo del archivo (acta de nacimiento)
+    file = request.files.get('acta_nacimiento')
+    nombre_archivo_final = ""
 
 if file and file.filename != '':
     # Creamos un nombre único para el archivo usando la identificación del tutor
